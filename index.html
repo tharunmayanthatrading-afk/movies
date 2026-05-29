@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Stream Hub</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #1d2230;
+      --text: #f3f4f6;
+      --muted: #aab1c5;
+      --accent: #7c5cff;
+      --accent-2: #30d158;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: linear-gradient(180deg, #0b0d12 0%, #111522 100%); color: var(--text); font-family: Arial, Helvetica, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 18px; }
+
+    .header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(14px);
+      background: rgba(10,12,18,.78);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar {
+      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      max-width: 1200px; margin: 0 auto;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .logo {
+      width: 42px; height: 42px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #ff4fd8);
+      box-shadow: var(--shadow);
+      display: grid; place-items: center; font-weight: 700;
+    }
+    .brand h1 { margin: 0; font-size: 1.05rem; line-height: 1.1; }
+    .brand p { margin: 2px 0 0; font-size: .82rem; color: var(--muted); }
+
+    .searchBox {
+      flex: 1;
+      display: flex;
+      max-width: 560px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .searchBox input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      padding: 14px 16px;
+      font-size: 1rem;
+    }
+    .searchBox button {
+      border: 0;
+      background: var(--accent);
+      color: white;
+      padding: 0 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .hero {
+      margin-top: 18px;
+      background: linear-gradient(135deg, rgba(124,92,255,.18), rgba(48,209,88,.10));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .hero h2 { margin: 0 0 6px; font-size: clamp(1.25rem, 2vw, 2rem); }
+    .hero p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin: 18px 0;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: .2s ease;
+      font-size: .95rem;
+    }
+    .chip.active, .chip:hover { background: var(--accent); border-color: transparent; }
+
+    .sectionTitle {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      margin: 20px 0 12px;
+    }
+    .sectionTitle h3 { margin: 0; font-size: 1.1rem; }
+    .sectionTitle span { color: var(--muted); font-size: .9rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(124,92,255,.5); }
+    .poster {
+      aspect-ratio: 2 / 3;
+      width: 100%;
+      object-fit: cover;
+      display: block;
+      background: #0b0d12;
+    }
+    .cardBody { padding: 12px; }
+    .title { margin: 0 0 6px; font-size: .98rem; font-weight: 700; }
+    .meta { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .82rem; }
+    .tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: .76rem;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(124,92,255,.18);
+      color: #d8d2ff;
+      border: 1px solid rgba(124,92,255,.22);
+    }
+
+    .empty {
+      display: none;
+      padding: 30px 16px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal.open { display: flex; }
+    .modalPanel {
+      width: min(1100px, 100%);
+      background: #0f1320;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .modalTop {
+      display: flex; justify-content: space-between; gap: 10px; align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modalTop h4 { margin: 0; font-size: 1rem; }
+    .closeBtn {
+      border: 0; cursor: pointer;
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      font-size: 20px;
+    }
+    .playerWrap {
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      background: #000;
+    }
+    iframe {
+      width: 100%; height: 100%; border: 0;
+      display: block;
+      background: #000;
+    }
+
+    .footer {
+      padding: 24px 0 32px;
+      color: var(--muted);
+      text-align: center;
+      font-size: .9rem;
+    }
+
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 820px) {
+      .topbar { flex-direction: column; align-items: stretch; }
+      .searchBox { max-width: 100%; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 480px) {
+      .wrap { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      .hero, .modalPanel { border-radius: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">T.M</div>
+        <div>
+          <h1>Movie Stream Hub</h1>
+          <p>Responsive film site with search and categories</p>
+        </div>
+      </div>
+
+      <div class="searchBox">
+        <input id="searchInput" type="text" placeholder="Search movie name..." />
+        <button id="clearBtn" type="button">Clear</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h2>Pick a movie and tap the poster to play</h2>
+      <p>Add your own movie title, category, poster image, and licensed embed link in the code below. The home page shows the first 5 movies by default, and you can filter by category or search by name.</p>
+    </section>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="sectionTitle">
+      <h3>Movies</h3>
+      <span id="resultCount"></span>
+    </div>
+
+    <section class="grid" id="movieGrid"></section>
+    <div class="empty" id="emptyState">No movies match your search.</div>
+
+    <div class="footer">Replace the sample data with your own movie details and embed URLs.</div>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="modalPanel">
+      <div class="modalTop">
+        <h4 id="modalTitle">Movie</h4>
+        <button class="closeBtn" id="closeModal" aria-label="Close">×</button>
+      </div>
+      <div class="playerWrap">
+        <iframe id="player" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Replace these sample items with your own licensed movies.
+    const movies = [
+      {
+        title: "The Boroughs",
+        category: "Action",
+        year: "2026 | Tv series | SO1 ✔️ |EO8 ✔️",
+        image: "https://m.media-amazon.com/images/M/MV5BZjc1Mjg0YjItN2M2Zi00ZDlhLWJhZDYtYjI2NmFmOGQ1ZmMxXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        embed: "https://streamimdb.ru/embed/tv/tt27557289"
+      },
+      {
+        title: "The Boys",
+        category: "Drama , Action , Comedy , Crime , Sci-Fi",
+        year: "2019 | Tv series | SO5 ✔️ ",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRoX9eJxVZpRQzNUKP9PHMzNHW6a922HK6dNA&s",
+        embed: "https://streamimdb.ru/embed/tv/tt1190634"
+      },
+      {
+        title: "Ladies First",
+        category: "Comedy",
+        year: "2026 | Director-Thea Sharrock , Writers-Natalie Krinsky , Cinco Paul , Katie Silberman | Stars- Sacha Baron Cohen , Rosamund Pike , Tom Davis",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjdDuRtNPUSS32ltDkMT1SWzFpLL9Vhk1OfQ&s",
+        embed: "https://streamimdb.ru/embed/movie/tt34611082"
+      },
+      {
+        title: "Dhurandhar: The Revenge",
+        category: "Action",
+        year: "2026",
+        image: "https://i.ytimg.com/vi/Pb2KJlBGids/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAtGlBtTal2WTQFqygDWO36w79BvQ",
+        embed: "https://streamimdb.ru/embed/movie/tt39139925"
+      },
+      {
+        title: "Dhurandhar",
+        category: "Sci-Fi",
+        year: "2025",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_ZQ4h5SucfPvbnZhDp0N1Vhx_3oXG93ggqg&s",
+        embed: "https://streamimdb.ru/embed/movie/tt33014583"
+      },
+      {
+        title: "The Crash",
+        category: "Action",
+        year: "2026",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSX12dMpoOGj73QqY7Nqt6dTOgSVvzYp8i1dA&s",
+        embed: "https://streamimdb.ru/embed/movie/tt40792117"
+      },
+      {
+        title: "Lee Cronin's The Mummy",
+        category: "horror",
+        year: "2026",
+        image: "https://m.media-amazon.com/images/M/MV5BNWQ1NzI2YTUtN2E0ZS00YzVmLTkxNjktMWIzNTYwMzkyOTU0XkEyXkFqcGc@._V1_.jpg",
+        embed: "https://streamimdb.ru/embed/movie/tt32612507"
+      },
+      {
+        title: "Joker",
+        category: "Drama",
+        year: "2019",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkNeYGwWeQEwOoPhxW93QIeNUWnLmEvMPwTw9AlDBGN4uXjIAcOEwz2z2yZL8BpXHp3ZYyjQ&s=10",
+        embed: "https://streamimdb.ru/embed/movie/tt7286456"
+      },
+      {
+        title: "Joker",
+        category: "Drama",
+        year: "2019",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkNeYGwWeQEwOoPhxW93QIeNUWnLmEvMPwTw9AlDBGN4uXjIAcOEwz2z2yZL8BpXHp3ZYyjQ&s=10",
+        embed: "https://streamimdb.ru/movie/7myrk-cursed"
+      },
+    ];
+
+    const grid = document.getElementById('movieGrid');
+    const filters = document.getElementById('filters');
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearBtn');
+    const resultCount = document.getElementById('resultCount');
+    const emptyState = document.getElementById('emptyState');
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const player = document.getElementById('player');
+    const closeModal = document.getElementById('closeModal');
+
+    let activeCategory = 'All';
+
+    const categories = ['All', ...new Set(movies.map(m => m.category))];
+
+    function renderFilters() {
+      filters.innerHTML = categories.map(cat => `
+        <button class="chip ${cat === activeCategory ? 'active' : ''}" data-category="${cat}">${cat}</button>
+      `).join('');
+
+      filters.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeCategory = btn.dataset.category;
+          renderFilters();
+          renderMovies();
+        });
+      });
+    }
+
+    function getFilteredMovies() {
+      const q = searchInput.value.trim().toLowerCase();
+      return movies.filter(movie => {
+        const matchesCategory = activeCategory === 'All' || movie.category === activeCategory;
+        const matchesSearch = !q || movie.title.toLowerCase().includes(q) || movie.category.toLowerCase().includes(q);
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function renderMovies() {
+      const filtered = getFilteredMovies();
+      resultCount.textContent = `${filtered.length} movie(s)`;
+      emptyState.style.display = filtered.length ? 'none' : 'block';
+
+      // Home page shows a compact 5-item view first, but all matches are still available when filtering/searching.
+     const visible = filtered;
+
+      grid.innerHTML = visible.map((movie, index) => `
+        <article class="card" data-index="${movies.indexOf(movie)}" aria-label="Play ${movie.title}">
+          <img class="poster" src="${movie.image}" alt="${movie.title}" loading="lazy" />
+          <div class="cardBody">
+            <h4 class="title">${movie.title}</h4>
+            <div class="meta"><span>${movie.category}</span><span>${movie.year}</span></div>
+            <div class="tag">Tap poster to play</div>
+          </div>
+        </article>
+      `).join('');
+
+      grid.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', () => openPlayer(parseInt(card.dataset.index, 10)));
+      });
+    }
+
+    function openPlayer(index) {
+      const movie = movies[index];
+      modalTitle.textContent = movie.title;
+      player.src = movie.embed;
+      modal.classList.add('open');
+    }
+
+    function closePlayer() {
+      modal.classList.remove('open');
+      player.src = '';
+    }
+
+    searchInput.addEventListener('input', renderMovies);
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      activeCategory = 'All';
+      renderFilters();
+      renderMovies();
+      searchInput.focus();
+    });
+
+    closeModal.addEventListener('click', closePlayer);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePlayer();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePlayer();
+    });
+
+    renderFilters();
+    renderMovies();
+  </script>
+</body>
+</html>
+
+
